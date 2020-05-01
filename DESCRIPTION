@@ -1,12 +1,11 @@
 Package: runtasticR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Import runtastic running data after export.
 Version: 0.1.0
 Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Maintainer: Marius Breitling <marius.breitling@gmail.com>
+Description: Package created for my personal use. Importing functions for exported xml data (.gpx) and creating tidy tibbles.
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Imports: 
@@ -18,4 +17,7 @@ Imports:
     geosphere,
     zoo,
     ggthemes,
-    tibble
+    tibble,
+    ggplot2,
+    leaflet
+RoxygenNote: 7.1.0

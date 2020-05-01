@@ -1,3 +1,5 @@
+#' Import Running Data
+#'
 #' Parse single .gpx file from runtastic export zipfile.
 #'
 #' @param path Relative path to single .gpx file in subfolder or export directory.
@@ -8,8 +10,8 @@
 parse_gps <- function(path) {
   xml <- xml2::read_xml(path)
 
-  trkpt <- xml2::xml_find_all(xml, "/*/*[2]/*[3]/*")
-  lat <- trkpt %>%
+  trkpt <- xml2::xml_find_all(xml, "/*/*[2]/*[3]/*") #read trackpoints by xpath
+  lat <- trkpt %>% #extract longitude, elevation, time
     xml2::xml_attr("lat") %>%
     as.double()
 
@@ -17,7 +19,7 @@ parse_gps <- function(path) {
     xml2::xml_attr("lon") %>%
     as.double()
 
-  ele <- trkpt  %>% 
+  ele <- trkpt  %>%
     xml2::xml_child("d1:ele") %>%
     xml2::xml_text() %>%
     as.double()
@@ -31,10 +33,9 @@ parse_gps <- function(path) {
   track_tibble <- tibble::tibble(lat, lon, ele, time)
 
   track_tibble <- track_tibble %>%
-    dplyr::mutate(time_span = time - dplyr::lag(time)) %>%
+    dplyr::mutate(time_span = time - dplyr::lag(time)) %>% #compute time_span between single gps points
     tidyr::replace_na(list(time_span = 0)) %>%
-    dplyr::mutate(duration = cumsum(as.double(time_span))) %>%
-    dplyr::mutate(duration = lubridate::seconds_to_period(duration))
+    dplyr::mutate(duration = cumsum(as.double(time_span)))
 
   track_tibble <- track_tibble %>%
     dplyr::rename(lat1 = lat, lon1 = lon) %>%
@@ -49,9 +50,10 @@ parse_gps <- function(path) {
     dplyr::mutate(dist_cumsum =  cumsum(dist))
 
   track_tibble <- track_tibble %>%
-    dplyr::mutate(pace = (as.double(time_span) / 60) / (dist / 1000)) %>%
-    dplyr::mutate(pace_5 = zoo::rollmean(pace, 5, na.pad = TRUE),
-           pace_15 = zoo::rollmean(pace, 15, na.pad = TRUE))
+    #dplyr::mutate(pace = (as.double(time_span) / 60) / (dist / 1000))%>%
+    dplyr::mutate(pace = ifelse(dist == 0, 0, (as.double(time_span) / 60) / (dist / 1000)))%>%
+    dplyr::mutate(pace_5 = zoo::rollmedian(pace, 5, na.pad = TRUE),
+           pace_15 = zoo::rollmedian(pace, 15, na.pad = TRUE))
 
   track_tibble$pace[is.nan(track_tibble$pace)] <- 0
 
@@ -59,13 +61,31 @@ parse_gps <- function(path) {
 
 }
 
+#' Import Running Data
+#'
+#' Creates one tidy tibble from zipfile exported via
+#' https://www.runtastic.com/de/benutzer/[...]/einstellungen/account-and-data.
+#' All runs from ./Sport-sessions/GPS-data are imported via the parse_gps()
+#' function.
+#'
+#' @param zipfile Relative path to zipfile.
+#' @return Tibble with gps-position data (lat, lon, elevation), time_span, (cumulative)
+#'     distance, time_span, duration, distace (cumulative).
+#' @examples
+#' import_runs(zipfile = 'export-20200424-000.zip')
 import_runs <- function(zipfile) {
   unzip(zipfile, exdir = "export")
   file_list <- list.files("./export/Sport-sessions/GPS-data/", pattern = "\\.gpx$")
   all_runs <- tibble::tibble()
   for (i in seq_along(file_list)) {
     run <- cbind(parse_gps(paste0("./export/Sport-sessions/GPS-data/", file_list[i])), id = i)
-    all_runs <- dplyr::bind_rows(all_runs, run)
+    all_runs <- rbind(all_runs, run)
   }
+  unlink('export', recursive = TRUE)
+  all_runs <- all_runs %>%
+    dplyr::group_by(lubridate::date(time)) %>%
+    dplyr::arrange(lubridate::date(time))%>%
+    dplyr::mutate(id = dplyr::group_indices())
+
   return(tibble::tibble(all_runs))
 }
