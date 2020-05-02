@@ -11,7 +11,7 @@ import_runs(zipfile)
 }
 \value{
 Tibble with gps-position data (lat, lon, elevation), time_span, (cumulative)
-    distance (time_span, duration, dist, dist_cumsum).
+    distance, time_span, duration, distace (cumulative).
 }
 \description{
 Creates one tidy tibble from zipfile exported via

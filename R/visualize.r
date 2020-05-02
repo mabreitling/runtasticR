@@ -1,33 +1,13 @@
-library(ggplot2)
-library(ggthemes)
-runs <- runtasticR::import_runs('/home/marius/VL_Unterlagen/R/runtastic/export-20200424-000.zip')
-
-runs %>% filter(id == 1) %>%
-  ggplot(aes(x = duration, y = pace_5)) +
-  geom_path()+
-  theme_tufte()
-
-
-runs %>% filter(pace_5 < 15, pace_5 > 1) %>%
-  ggplot(aes(x = duration, y = pace_5)) +
-  geom_line()+
-  theme_minimal()+
-  labs(title = 'Pace for distinct runs', subtitle = 'measured in min/km')+
-  xlab('Meters')+
-  ylab('Pace, min/km')+
-  facet_wrap(~ as.factor(lubridate::date(time)), scale = "free_x")
-
-runs %>%
-  filter(pace < 20, time > "2020-01-01") %>%
-  #filter(id == 7, pace < 20) %>%
-  ggplot(aes(x = pace))+
-  geom_density( alpha = 0.2)+
-  theme_minimal()+
-  facet_wrap(~ as.factor(lubridate::date(time)))
-
-
-
-run_map <- function(runs, runId, mapshot = TRUE){
+#' Map running data using leaflet
+#'
+#' Filter running tibble and map runs.
+#'
+#' @param runs tibble
+#' @param runId Vector of runId, runs is filtered by. Returned runs are mapped afterwards
+#' @return leaflet object
+#' @examples
+#' run_map(runs_tibble, 2)
+run_map <- function(runs, runId){
   run_filt <- runs %>% filter(id %in% runId)
    map <- leaflet::leaflet() %>%
     leaflet::addProviderTiles(provider = 'Stamen.TonerLite')%>%
@@ -37,11 +17,6 @@ run_map <- function(runs, runId, mapshot = TRUE){
     }
   return(map)
 }
-
-run_map(runs, runId = c(1), mapshot = TRUE)
-
-
-
 
 
 
